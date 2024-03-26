@@ -4,11 +4,8 @@ import { fileURLToPath } from 'node:url';
 import got from 'got';
 import type { ConfeeResponse } from './index';
 import * as process from 'process';
-import signale = require('signale');
+import * as signale from 'signale';
 
-// 获取当前 cwd 目录
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-expect-error
 const baseDir = path.dirname(fileURLToPath(import.meta.url));
 export const confDir = path.join(baseDir, '..', 'node_modules', '.confee');
 export const confPathname = path.join(confDir, 'config.json');

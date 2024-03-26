@@ -1,6 +1,7 @@
 {
   "name": "@sia-fl/convite",
-  "version": "0.0.3",
+  "version": "0.0.5",
+  "type": "module",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/sia-fl/convite.git"
