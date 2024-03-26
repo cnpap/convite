@@ -6,11 +6,11 @@ import type { ConfeeResponse } from './index';
 import * as process from 'process';
 import signale = require('signale');
 
-// 获取当前脚本的目录
+// 获取当前 cwd 目录
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-expect-error
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-export const confDir = path.join(__dirname, '..', 'node_modules', '.confee');
+const baseDir = path.dirname(fileURLToPath(import.meta.url));
+export const confDir = path.join(baseDir, '..', 'node_modules', '.confee');
 export const confPathname = path.join(confDir, 'config.json');
 
 const CONFEE_ACCESS_TOKEN = (process.env.CONFEE_ACCESS_TOKEN = 'x');
