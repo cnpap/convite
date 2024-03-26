@@ -1,8 +1,11 @@
 {
-  "name": "@sif-fl/convite",
+  "name": "@sia-fl/convite",
   "version": "0.0.1",
-  "dependencies": {},
-  "main": "./index.js",
-  "module": "./index.mjs",
-  "typings": "./index.d.ts"
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sia-fl/convite.git"
+  },
+  "publishConfig": {
+    "@sia-fl:registry": "https://npm.pkg.github.com"
+  }
 }

@@ -15,7 +15,8 @@
     "skipDefaultLibCheck": true,
     "baseUrl": ".",
     "paths": {
-      "@sif-fl/convite": ["libs/convite/src/index.ts"]
+      "@sia-fl/convite": ["libs/convite/src/index.ts"],
+      "@sia-fl/convite-dev": ["libs/convite/src/index.ts"]
     }
   },
   "exclude": ["node_modules", "tmp"]

@@ -5,12 +5,13 @@
   "projectType": "library",
   "targets": {
     "build": {
-      "executor": "@nx/vite:build",
+      "executor": "@nx/js:tsc",
       "outputs": ["{options.outputPath}"],
       "options": {
         "outputPath": "dist/libs/convite",
-        "main": "libs/convite/src/index.ts",
         "tsConfig": "libs/convite/tsconfig.lib.json",
+        "packageJson": "libs/convite/package.json",
+        "main": "libs/convite/src/index.ts",
         "assets": ["libs/convite/*.md"]
       }
     },
