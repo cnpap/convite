@@ -8,7 +8,7 @@ import {
   Pagination,
   PaginationDetail,
   Template,
-} from './type';
+} from './index';
 import { tplCallbable, tplCodeRefining } from './util/tpl';
 import { WebSocket } from 'ws';
 import { createServer } from 'http';
@@ -134,239 +134,238 @@ export default function () {
 export const confeePlugin: (options: ConfeePluginOptions) => PluginOption[] = (
   options
 ) => [
-    {
-      name: 'convite',
-      async config() {
-        resolveIds = Object.keys(options.idsResolve);
-        /**
-         * 开始准备数据，对数据进行预处理，主要是确定分页和模板的关系以及为分页补充数据
-         */
-        confeeData = await fetchAndSaveConfig(options.url, options.projectId);
-        confeeData.computed = {
-          hotModuleByRoute: {},
-        };
+  {
+    name: 'convite',
+    async config() {
+      resolveIds = Object.keys(options.idsResolve);
+      /**
+       * 开始准备数据，对数据进行预处理，主要是确定分页和模板的关系以及为分页补充数据
+       */
+      confeeData = await fetchAndSaveConfig(options.url, options.projectId);
+      confeeData.computed = {
+        hotModuleByRoute: {},
+      };
 
-        /**
-         * 将 <分页选项，模板文件> 通过名称对应起来
-         */
-        for (const template of options.templates) {
-          const paginationOption = confeeData.paginationOptions.find(
-            (p) => p.name === template.paginationOptionName
+      /**
+       * 将 <分页选项，模板文件> 通过名称对应起来
+       */
+      for (const template of options.templates) {
+        const paginationOption = confeeData.paginationOptions.find(
+          (p) => p.name === template.paginationOptionName
+        );
+        if (!paginationOption)
+          throw new Error(
+            `Cannot find pagination option with name ${template.paginationOptionName}`
           );
-          if (!paginationOption)
-            throw new Error(
-              `Cannot find pagination option with name ${template.paginationOptionName}`
-            );
 
+        /**
+         * 获取所有 分页 和 模板文件 通过 《分页选项id》 关联
+         *
+         * 每一个分页都有一个分页选项 id
+         * 而模板已经在上一步与分页选项对应起来了
+         */
+        const paginations = confeeData.paginations.filter(
+          (p) => p.projectPaginationOptionId === paginationOption?.id
+        );
+
+        /**
+         * 如果有模板文件，则预先读取出来
+         */
+        if (!template.content && template.pathname) {
+          template.content = fs.readFileSync(template.pathname, 'utf-8');
+        }
+
+        /**
+         * 将主页与分页进行关联，并记录一系列可用信息
+         */
+        for (const pagination of paginations) {
+          const mainPage = confeeData.mainPages.find(
+            (p) => p.code === pagination.groupCode
+          );
+          if (!mainPage) continue;
+          // throw new Error(
+          //   `Cannot find main page with id ${pagination.groupCode}`
+          // );
           /**
-           * 获取所有 分页 和 模板文件 通过 《分页选项id》 关联
+           * 模块、路由 所用到的元信息
+           */
+          const makeResult = await (options.make || defaultMake)(
+            mainPage,
+            pagination
+          );
+          /**
+           * mod 一般是 主页 code + 分页 code，比如：suppliers-index
+           * 那么如果我通过路由将该文件作为模块引入，那么大概就是
            *
-           * 每一个分页都有一个分页选项 id
-           * 而模板已经在上一步与分页选项对应起来了
+           * - suppliers-index.tsx
+           * - suppliers-index.vue
+           *
+           * 这个时候我们不能将他变成完整的名称，比如 @sia-fl/suppliers-index.tsx，这里仅将其处理为元信息
            */
-          const paginations = confeeData.paginations.filter(
-            (p) => p.projectPaginationOptionId === paginationOption?.id
+          const modName = `${makeResult.mod}.${options.modSuffix || 'tsx'}`;
+          mods.push(modName);
+
+          /**
+           * 拉去这个分页的所有配置字段
+           */
+          const paginationFields = confeeData.paginationFields.filter(
+            (p) =>
+              p.projectTableCode === pagination.projectTableCode &&
+              p.projectPaginationCode === pagination.code
           );
 
           /**
-           * 如果有模板文件，则预先读取出来
+           * 尽可能的记录分页与其他数据的关系
            */
-          if (!template.content && template.pathname) {
-            template.content = fs.readFileSync(template.pathname, 'utf-8');
-          }
-
-          /**
-           * 将主页与分页进行关联，并记录一系列可用信息
-           */
-          for (const pagination of paginations) {
-            const mainPage = confeeData.mainPages.find(
-              (p) => p.code === pagination.groupCode
-            );
-            if (!mainPage)
-              continue;
-            // throw new Error(
-            //   `Cannot find main page with id ${pagination.groupCode}`
-            // );
-            /**
-             * 模块、路由 所用到的元信息
-             */
-            const makeResult = await (options.make || defaultMake)(
-              mainPage,
-              pagination
-            );
-            /**
-             * mod 一般是 主页 code + 分页 code，比如：suppliers-index
-             * 那么如果我通过路由将该文件作为模块引入，那么大概就是
-             *
-             * - suppliers-index.tsx
-             * - suppliers-index.vue
-             *
-             * 这个时候我们不能将他变成完整的名称，比如 @sia-fl/suppliers-index.tsx，这里仅将其处理为元信息
-             */
-            const modName = `${makeResult.mod}.${options.modSuffix || 'tsx'}`;
-            mods.push(modName);
-
-            /**
-             * 拉去这个分页的所有配置字段
-             */
-            const paginationFields = confeeData.paginationFields.filter(
-              (p) =>
-                p.projectTableCode === pagination.projectTableCode &&
-                p.projectPaginationCode === pagination.code
-            );
-
-            /**
-             * 尽可能的记录分页与其他数据的关系
-             */
-            paginationDetails.push({
-              paginationOfMainPageCodes: makeResult.codes,
-              modNameOfMainPage: makeResult.mod,
-              template,
-              mainPage,
-              pagination,
-              paginationFields,
-              paginationOption: paginationOption,
-            });
-          }
-        }
-
-        options.computed(confeeData, Object.values(paginationDetails));
-
-        global.__viteConfeeData = confeeData;
-      },
-      configureServer(server) {
-        /**
-         * 开启 websocket 服务，实现开发阶段的动态预处理
-         */
-        if (!global.__viteConfeeWsStarted) {
-          global.__viteConfeeWsStarted = true;
-          const httpServer = createServer();
-          const wss = new WebSocket.Server({ server: httpServer });
-          wss.on('connection', function connection(ws) {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            ws.on('message', function message(data: any) {
-              const payload = JSON.parse(data);
-              /**
-               * 判断是否是路由变化，如果是路由变化，那么我们需要重新加载
-               * 在加载前，应当计算出当前路由所相关联的所有分页并记录，便于后续明确所需解析的模块
-               */
-              if (payload.route && payload.route !== global.__viteCurrentUrl) {
-                signale.debug('reload event by: ', payload.route);
-                /**
-                 * 记录活动的 url
-                 */
-                global.__viteCurrentUrl = payload.route;
-                /**
-                 * 记录所需热更新的模块
-                 */
-                global.__viteHotModuleByRoute =
-                  confeeData.computed.hotModuleByRoute[payload.route] || [];
-                server.restart(false);
-              }
-            });
-          });
-
-          let port = 3001;
-          let host = 'localhost';
-          if (options.devServer) {
-            if (options.devServer.host) {
-              host = options.devServer.host;
-            }
-            if (options.devServer.port) {
-              port = options.devServer.port;
-            }
-          }
-
-          httpServer.listen(port, host);
-          console.log('\n');
-          signale.success(`WebSocket server listening on ws://${host}:${port}`);
-        }
-      },
-      handleHotUpdate({ file, server }) {
-        for (const template of options.templates) {
-          file = file.replace(/\//g, '\\');
-          if (file === template.pathname) {
-            signale.debug('template hot update: ', file);
-            server.restart(true);
-          }
-        }
-      },
-      resolveId(id) {
-        for (const resolveId of resolveIds) {
-          if (id.startsWith(resolveId)) return id;
-        }
-        // if (source.startsWith('@sia-fl/route')) return source;
-        // if (source.startsWith('@sia-fl/convite')) return source;
-        if (mods.includes(id)) return id;
-
-        if (id.startsWith('@sia-fl/convite')) {
-          return id;
-        }
-
-        return null;
-      },
-      load(id) {
-        for (const resolveId in options.idsResolve) {
-          if (id.startsWith(resolveId)) {
-            const { paginationOptionName } =
-              options.idsResolve[resolveId](id) || {};
-            /**
-             * 判断当前分页是否有使用到模板
-             * 如果使用到了则返回模板内容
-             */
-            if (paginationOptionName) {
-              /**
-               * 首先通过 templateName 找到对应的模板内容
-               */
-              for (const template of options.templates) {
-                if (template.paginationOptionName === paginationOptionName) {
-                  const ps = tplCodeRefining(template.content, id);
-                  return tplCallbable({
-                    ...ps,
-                    confeeData,
-                    globalData: {
-                      currentMod: id,
-                      currentUrl: global.__viteCurrentUrl,
-                      hotModuleByRoute: global.__viteHotModuleByRoute,
-                    },
-                  })
-                }
-              }
-            } else {
-              /**
-               * 没有使用则返回空
-               */
-              return nullTemplate(id);
-            }
-          }
-        }
-        if (id.startsWith('@sia-fl/convite')) {
-          return `\
-export const confee = {}`;
-        }
-        if (mods.includes(id)) {
-          return nullTemplate(id);
-        }
-        return;
-      },
-      transform(code, id) {
-        /**
-         * 正则判断 id 以 .confee.* 结尾，比如 .confee.vue、.confee.tsx
-         */
-        const names = id.split('.');
-        if (
-          names[names.length - 2] &&
-          names[names.length - 2].endsWith('confee')
-        ) {
-          const ps = tplCodeRefining(code, id);
-          return tplCallbable({
-            ...ps,
-            confeeData,
+          paginationDetails.push({
+            paginationOfMainPageCodes: makeResult.codes,
+            modNameOfMainPage: makeResult.mod,
+            template,
+            mainPage,
+            pagination,
+            paginationFields,
+            paginationOption: paginationOption,
           });
         }
-        return code;
-      },
+      }
+
+      options.computed(confeeData, Object.values(paginationDetails));
+
+      global.__viteConfeeData = confeeData;
     },
-  ];
+    configureServer(server) {
+      /**
+       * 开启 websocket 服务，实现开发阶段的动态预处理
+       */
+      if (!global.__viteConfeeWsStarted) {
+        global.__viteConfeeWsStarted = true;
+        const httpServer = createServer();
+        const wss = new WebSocket.Server({ server: httpServer });
+        wss.on('connection', function connection(ws) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          ws.on('message', function message(data: any) {
+            const payload = JSON.parse(data);
+            /**
+             * 判断是否是路由变化，如果是路由变化，那么我们需要重新加载
+             * 在加载前，应当计算出当前路由所相关联的所有分页并记录，便于后续明确所需解析的模块
+             */
+            if (payload.route && payload.route !== global.__viteCurrentUrl) {
+              signale.debug('reload event by: ', payload.route);
+              /**
+               * 记录活动的 url
+               */
+              global.__viteCurrentUrl = payload.route;
+              /**
+               * 记录所需热更新的模块
+               */
+              global.__viteHotModuleByRoute =
+                confeeData.computed.hotModuleByRoute[payload.route] || [];
+              server.restart(false);
+            }
+          });
+        });
+
+        let port = 3001;
+        let host = 'localhost';
+        if (options.devServer) {
+          if (options.devServer.host) {
+            host = options.devServer.host;
+          }
+          if (options.devServer.port) {
+            port = options.devServer.port;
+          }
+        }
+
+        httpServer.listen(port, host);
+        console.log('\n');
+        signale.success(`WebSocket server listening on ws://${host}:${port}`);
+      }
+    },
+    handleHotUpdate({ file, server }) {
+      for (const template of options.templates) {
+        file = file.replace(/\//g, '\\');
+        if (file === template.pathname) {
+          signale.debug('template hot update: ', file);
+          server.restart(true);
+        }
+      }
+    },
+    resolveId(id) {
+      for (const resolveId of resolveIds) {
+        if (id.startsWith(resolveId)) return id;
+      }
+      // if (source.startsWith('@sia-fl/route')) return source;
+      // if (source.startsWith('@sia-fl/convite')) return source;
+      if (mods.includes(id)) return id;
+
+      if (id.startsWith('@sia-fl/convite')) {
+        return id;
+      }
+
+      return null;
+    },
+    load(id) {
+      for (const resolveId in options.idsResolve) {
+        if (id.startsWith(resolveId)) {
+          const { paginationOptionName } =
+            options.idsResolve[resolveId](id) || {};
+          /**
+           * 判断当前分页是否有使用到模板
+           * 如果使用到了则返回模板内容
+           */
+          if (paginationOptionName) {
+            /**
+             * 首先通过 templateName 找到对应的模板内容
+             */
+            for (const template of options.templates) {
+              if (template.paginationOptionName === paginationOptionName) {
+                const ps = tplCodeRefining(template.content, id);
+                return tplCallbable({
+                  ...ps,
+                  confeeData,
+                  globalData: {
+                    currentMod: id,
+                    currentUrl: global.__viteCurrentUrl,
+                    hotModuleByRoute: global.__viteHotModuleByRoute,
+                  },
+                });
+              }
+            }
+          } else {
+            /**
+             * 没有使用则返回空
+             */
+            return nullTemplate(id);
+          }
+        }
+      }
+      if (id.startsWith('@sia-fl/convite')) {
+        return `\
+export const confee = {}`;
+      }
+      if (mods.includes(id)) {
+        return nullTemplate(id);
+      }
+      return;
+    },
+    transform(code, id) {
+      /**
+       * 正则判断 id 以 .confee.* 结尾，比如 .confee.vue、.confee.tsx
+       */
+      const names = id.split('.');
+      if (
+        names[names.length - 2] &&
+        names[names.length - 2].endsWith('confee')
+      ) {
+        const ps = tplCodeRefining(code, id);
+        return tplCallbable({
+          ...ps,
+          confeeData,
+        });
+      }
+      return code;
+    },
+  },
+];
 
 export default confeePlugin;

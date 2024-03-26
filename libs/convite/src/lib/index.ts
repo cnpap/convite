@@ -136,7 +136,7 @@ export interface TableColumn {
 
 export interface Attr {
   name?: string;
-  type?: Type;
+  type?: Index;
   fixed?: boolean;
   scale?: number;
   length?: number;
@@ -149,7 +149,7 @@ export interface Attr {
   columnDefinition: any;
 }
 
-export interface Type { }
+export interface Index {}
 
 export interface MainPage {
   id: string;
@@ -190,16 +190,16 @@ export interface PaginationPathnameDict {
 export interface PaginationOption {
   id: string;
   name: string;
-  attr: PaginationOptionAttr[]
-  relationAttr: PaginationOptionAttr[]
+  attr: PaginationOptionAttr[];
+  relationAttr: PaginationOptionAttr[];
 }
 
 export interface PaginationOptionAttr {
-  id: string
-  "#id"?: string
-  code: string
-  label: string
-  props: string
+  id: string;
+  '#id'?: string;
+  code: string;
+  label: string;
+  props: string;
 }
 
 export interface Pagination {
@@ -211,17 +211,16 @@ export interface Pagination {
   projectPaginationOptionId: string;
 }
 
-
 export interface PaginationData {
-  option: PaginationDataOption[]
-  tableColumnCode: string
-  sort: number
-  dbType: string
+  option: PaginationDataOption[];
+  tableColumnCode: string;
+  sort: number;
+  dbType: string;
 }
 
 export interface PaginationDataOption {
-  code: string
-  value: any
+  code: string;
+  value: any;
 }
 
 export interface PaginationField {
@@ -230,16 +229,21 @@ export interface PaginationField {
   projectPaginationCode: string;
   prefix: string;
   projectTableRelationId: string;
-  data: Daum[];
+  data: PaginationFieldData[];
   projectTableCode: string;
   relationData: any;
 }
 
-export interface Daum {
+export interface PaginationFieldData {
   dbType: string;
-  option: Option[];
+  option: PaginationFieldDataOption[];
   relationTypes: string[];
   tableColumnCode: string;
   sort?: number;
   package: any;
+}
+
+export interface PaginationFieldDataOption {
+  code: string;
+  value: any;
 }

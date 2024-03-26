@@ -1,7 +1,7 @@
 import * as ts from 'typescript';
 import { v4 } from 'uuid';
 import * as ejs from 'ejs';
-import { ConfeeData } from '../type.d';
+import { ConfeeData } from '../index';
 
 type TplCodeRefiningResult = {
   replaced: string;

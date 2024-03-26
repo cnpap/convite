@@ -2,7 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'node:url';
 import got from 'got';
-import type { ConfeeResponse } from './type';
+import type { ConfeeResponse } from './index';
 import * as process from 'process';
 import signale = require('signale');
 
