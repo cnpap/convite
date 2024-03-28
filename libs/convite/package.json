@@ -1,12 +1,16 @@
 {
   "name": "@sia-fl/convite",
-  "version": "0.0.5",
-  "type": "module",
+  "version": "0.0.18",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/sia-fl/convite.git"
   },
   "publishConfig": {
     "@sia-fl:registry": "https://npm.pkg.github.com"
-  }
+  },
+  "main": "./src/index.js",
+  "types": "./src/index.d.ts",
+  "files": [
+    "src"
+  ]
 }

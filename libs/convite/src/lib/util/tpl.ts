@@ -1,7 +1,7 @@
 import * as ts from 'typescript';
 import { v4 } from 'uuid';
 import * as ejs from 'ejs';
-import { ConfeeData } from '../index';
+import { ConfeeData } from '../type';
 
 type TplCodeRefiningResult = {
   replaced: string;
@@ -115,17 +115,16 @@ export function tplCodeRefining(
       reg: /<!--([\s\S]*?)endTpl-->/g,
       trims: [/[\n\s]*<!--[\n\s]+/, /[\n\s]*endTpl-->[\n\s]*/],
     });
-  } else if (ext === 'tsx') {
-    // {/*
-    // ... any code
-    // endTpl*/}
-    code = trimHelpComment({
-      code,
-      record: templates,
-      reg: /{\/\*([\s\S]*?)endTpl\*\/}/g,
-      trims: [/[\n\s]*{\/\*[\n\s]+/, /[\n\s]*endTpl\*\/}[\n\s]*/],
-    });
   }
+  // {/*
+  // ... any code
+  // endTpl*/}
+  code = trimHelpComment({
+    code,
+    record: templates,
+    reg: /{\/\*([\s\S]*?)endTpl\*\/}/g,
+    trims: [/[\n\s]*{\/\*[\n\s]+/, /[\n\s]*endTpl\*\/}[\n\s]*/],
+  });
 
   // 还有一种情况是直接在代码中写注释，这种情况下需要提取到 templates
   //

@@ -15,6 +15,19 @@
         "assets": ["libs/convite/*.md"]
       }
     },
+    "tsup": {
+      "executor": "nx:run-commands",
+      "options": {
+        "commands": [
+          {
+            "command": "tsup libs/convite/src/index.ts --config libs/convite/tsup.config.ts"
+          },
+          {
+            "command": "copyfiles libs/convite/package.json dist"
+          }
+        ]
+      }
+    },
     "nx-release-publish": {
       "options": {
         "packageRoot": "dist\\{projectRoot}"

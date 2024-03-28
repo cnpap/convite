@@ -136,7 +136,7 @@ export interface TableColumn {
 
 export interface Attr {
   name?: string;
-  type?: Index;
+  type?: Type;
   fixed?: boolean;
   scale?: number;
   length?: number;
@@ -149,7 +149,7 @@ export interface Attr {
   columnDefinition: any;
 }
 
-export interface Index {}
+export interface Type {}
 
 export interface MainPage {
   id: string;

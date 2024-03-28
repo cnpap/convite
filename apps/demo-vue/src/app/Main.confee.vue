@@ -1,18 +1,12 @@
 <script setup lang="ts">
 import { Message } from '@arco-design/web-vue';
-import {
-  IconCalendar,
-  IconCaretLeft,
-  IconCaretRight,
-  IconHome,
-} from '@arco-design/web-vue/es/icon';
+import { IconCaretLeft, IconCaretRight } from '@arco-design/web-vue/es/icon';
 import {
   confee,
   type MainPage,
   type PaginationOption,
 } from '@sia-fl/convite-dev';
 import { useRouter, useRoute } from 'vue-router';
-import { onMounted } from 'vue';
 
 const route = useRoute();
 const router = useRouter();

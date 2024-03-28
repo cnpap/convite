@@ -38,6 +38,8 @@
     "@vue/eslint-config-prettier": "7.1.0",
     "@vue/eslint-config-typescript": "^11.0.3",
     "@vue/test-utils": "^2.4.1",
+    "copyfiles": "^2.4.1",
+    "ejs": "^3.1.9",
     "eslint": "~8.48.0",
     "eslint-config-prettier": "^9.0.0",
     "eslint-plugin-import": "2.27.5",
@@ -51,30 +53,30 @@
     "less": "^4.2.0",
     "nx": "18.1.2",
     "prettier": "^2.6.2",
+    "signale": "^1.4.0",
     "ts-jest": "^29.1.0",
     "ts-node": "10.9.1",
+    "tsup": "^8.0.2",
     "typescript": "~5.3.2",
+    "uuid": "^9.0.1",
     "verdaccio": "^5.0.4",
     "vite": "~5.1.0",
     "vite-plugin-dts": "~2.3.0",
     "vitest": "^1.3.1",
-    "vue-tsc": "^1.8.8"
+    "vue-tsc": "^1.8.8",
+    "ws": "^8.16.0"
   },
   "nx": {
     "includedScripts": []
   },
   "dependencies": {
     "@arco-design/web-vue": "^2.55.0",
-    "ejs": "^3.1.9",
     "query-string": "^9.0.0",
     "react": "18.2.0",
     "react-dom": "18.2.0",
-    "signale": "^1.4.0",
     "sortablejs": "^1.15.2",
     "tslib": "^2.3.0",
-    "uuid": "^9.0.1",
     "vue": "^3.3.4",
-    "vue-router": "^4.3.0",
-    "ws": "^8.16.0"
+    "vue-router": "^4.3.0"
   }
 }

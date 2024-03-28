@@ -8,9 +8,9 @@ import {
   Pagination,
   PaginationDetail,
   Template,
-} from './index';
+} from './type';
 import { tplCallbable, tplCodeRefining } from './util/tpl';
-import { WebSocket } from 'ws';
+import { WebSocketServer } from 'ws';
 import { createServer } from 'http';
 import * as signale from 'signale';
 import * as fs from 'fs';
@@ -31,6 +31,14 @@ global.__viteHotModuleByRoute = global.__viteHotModuleByRoute || [];
  * 记录初始启动时的配置
  */
 global.__viteConfeeData = global.__viteConfeeData || null;
+/**
+ * 记录所有分页详情
+ */
+global.__vitePaginationDetails = global.__vitePaginationDetails || [];
+/**
+ * 记录所有模块
+ */
+global.__mods = global.__mods || [];
 
 /**
  * 将主页与分页的关系进行默认处理
@@ -52,6 +60,10 @@ async function defaultMake(mainPage: MainPage, pagination: Pagination) {
 type MakeResult = ReturnType<typeof defaultMake>;
 
 export interface ConfeePluginOptions {
+  /**
+   * 是否缓存文件
+   */
+  cache?: boolean;
   /**
    * Confee 请求路径，暂时为内网路径，以后可能用以区分内外网及不同服务区
    */
@@ -86,6 +98,7 @@ export interface ConfeePluginOptions {
    * 开发服务器配置信息
    */
   devServer?: {
+    open?: boolean;
     host?: string;
     port?: number;
   };
@@ -107,7 +120,7 @@ let confeeData: ConfeeData = null as unknown as ConfeeData;
 /**
  * 所有分页对应的 mods
  */
-const mods: string[] = [];
+let mods: string[] = [];
 /**
  * 所有需要解析的 id
  */
@@ -115,14 +128,21 @@ let resolveIds: string[] = [];
 /**
  * 分页关系与所有有关数据的记录
  */
-const paginationDetails: PaginationDetail[] = [];
+let paginationDetails: PaginationDetail[] = [];
 
 const nullTemplate = (id: string) => {
   if (id.endsWith('.vue')) {
     return `\
 <template>
     ${id}
-</template>`;
+</template>
+<script lang="ts" setup></script>
+<script lang="ts">
+export default {
+  name: '${id}'
+};
+</script>
+`;
   } else if (id.endsWith('.tsx')) {
     return `\
 export default function () {
@@ -138,10 +158,19 @@ export const confeePlugin: (options: ConfeePluginOptions) => PluginOption[] = (
     name: 'convite',
     async config() {
       resolveIds = Object.keys(options.idsResolve);
+
+      if (global.__viteConfeeData) {
+        confeeData = global.__viteConfeeData;
+        mods = global.__mods;
+        paginationDetails = global.__vitePaginationDetails;
+
+        return;
+      }
+
       /**
        * 开始准备数据，对数据进行预处理，主要是确定分页和模板的关系以及为分页补充数据
        */
-      confeeData = await fetchAndSaveConfig(options.url, options.projectId);
+      confeeData = await fetchAndSaveConfig(options);
       confeeData.computed = {
         hotModuleByRoute: {},
       };
@@ -231,54 +260,61 @@ export const confeePlugin: (options: ConfeePluginOptions) => PluginOption[] = (
 
       options.computed(confeeData, Object.values(paginationDetails));
 
+      global.__mods = mods;
       global.__viteConfeeData = confeeData;
+      global.__vitePaginationDetails = paginationDetails;
     },
     configureServer(server) {
       /**
-       * 开启 websocket 服务，实现开发阶段的动态预处理
+       * 不一定要开启 websocket 服务
        */
-      if (!global.__viteConfeeWsStarted) {
-        global.__viteConfeeWsStarted = true;
-        const httpServer = createServer();
-        const wss = new WebSocket.Server({ server: httpServer });
-        wss.on('connection', function connection(ws) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          ws.on('message', function message(data: any) {
-            const payload = JSON.parse(data);
-            /**
-             * 判断是否是路由变化，如果是路由变化，那么我们需要重新加载
-             * 在加载前，应当计算出当前路由所相关联的所有分页并记录，便于后续明确所需解析的模块
-             */
-            if (payload.route && payload.route !== global.__viteCurrentUrl) {
-              signale.debug('reload event by: ', payload.route);
+      if (options.devServer?.open) {
+        /**
+         * 开启 websocket 服务，实现开发阶段的动态预处理
+         */
+        if (!global.__viteConfeeWsStarted) {
+          global.__viteConfeeWsStarted = true;
+          const httpServer = createServer();
+          const wss = new WebSocketServer({ server: httpServer });
+          wss.on('connection', function connection(ws) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            ws.on('message', function message(data: any) {
+              const payload = JSON.parse(data);
               /**
-               * 记录活动的 url
+               * 判断是否是路由变化，如果是路由变化，那么我们需要重新加载
+               * 在加载前，应当计算出当前路由所相关联的所有分页并记录，便于后续明确所需解析的模块
                */
-              global.__viteCurrentUrl = payload.route;
-              /**
-               * 记录所需热更新的模块
-               */
-              global.__viteHotModuleByRoute =
-                confeeData.computed.hotModuleByRoute[payload.route] || [];
-              server.restart(false);
-            }
+              if (payload.route && payload.route !== global.__viteCurrentUrl) {
+                signale.debug('reload event by: ', payload.route);
+                /**
+                 * 记录活动的 url
+                 */
+                global.__viteCurrentUrl = payload.route;
+                /**
+                 * 记录所需热更新的模块
+                 */
+                global.__viteHotModuleByRoute =
+                  confeeData.computed.hotModuleByRoute[payload.route] || [];
+                server.restart(false);
+              }
+            });
           });
-        });
 
-        let port = 3001;
-        let host = 'localhost';
-        if (options.devServer) {
-          if (options.devServer.host) {
-            host = options.devServer.host;
+          let port = 3001;
+          let host = 'localhost';
+          if (options.devServer) {
+            if (options.devServer.host) {
+              host = options.devServer.host;
+            }
+            if (options.devServer.port) {
+              port = options.devServer.port;
+            }
           }
-          if (options.devServer.port) {
-            port = options.devServer.port;
-          }
+
+          httpServer.listen(port, host);
+          console.log('\n');
+          signale.success(`WebSocket server listening on ws://${host}:${port}`);
         }
-
-        httpServer.listen(port, host);
-        console.log('\n');
-        signale.success(`WebSocket server listening on ws://${host}:${port}`);
       }
     },
     handleHotUpdate({ file, server }) {
@@ -319,6 +355,12 @@ export const confeePlugin: (options: ConfeePluginOptions) => PluginOption[] = (
              */
             for (const template of options.templates) {
               if (template.paginationOptionName === paginationOptionName) {
+                if (template.pathname) {
+                  template.content = fs.readFileSync(
+                    template.pathname,
+                    'utf-8'
+                  );
+                }
                 const ps = tplCodeRefining(template.content, id);
                 return tplCallbable({
                   ...ps,
@@ -339,7 +381,7 @@ export const confeePlugin: (options: ConfeePluginOptions) => PluginOption[] = (
           }
         }
       }
-      if (id.startsWith('@sia-fl/convite')) {
+      if (id.startsWith('@sia-fl/convite') || id.includes('@sia-fl_convite')) {
         return `\
 export const confee = {}`;
       }
@@ -357,6 +399,21 @@ export const confee = {}`;
         names[names.length - 2] &&
         names[names.length - 2].endsWith('confee')
       ) {
+        /**
+         * 判断 code 是否包含 import { confee } from '@sia-fl/convite'，则将 import 中的内容替换为 {}
+         * 以避免在生产环境中引入无用代码
+         * 使用正则匹配，避免误判
+         */
+        if (
+          /import\s+{[^}]*confee[^}]*}\s+from\s+['"]@sia-fl\/convite['"]/.test(
+            code
+          )
+        ) {
+          code = code.replace(
+            /import\s+{[^}]*confee[^}]*}\s+from\s+['"]@sia-fl\/convite['"]/,
+            ``
+          );
+        }
         const ps = tplCodeRefining(code, id);
         return tplCallbable({
           ...ps,

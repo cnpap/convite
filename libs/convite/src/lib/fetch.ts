@@ -1,18 +1,23 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { fileURLToPath } from 'node:url';
 import got from 'got';
-import type { ConfeeResponse } from './index';
+import type { ConfeeResponse } from './type';
 import * as process from 'process';
 import * as signale from 'signale';
+import getNodeModulesPath from './util/module';
+import { ConfeePluginOptions } from './plugin';
 
-const baseDir = path.dirname(fileURLToPath(import.meta.url));
-export const confDir = path.join(baseDir, '..', 'node_modules', '.confee');
+const node_modules = getNodeModulesPath();
+export const confDir = path.join(node_modules, '.confee');
 export const confPathname = path.join(confDir, 'config.json');
 
 const CONFEE_ACCESS_TOKEN = (process.env.CONFEE_ACCESS_TOKEN = 'x');
 
-export async function fetchAndSaveConfig(url: string, projectId: string) {
+export async function fetchAndSaveConfig({
+  url,
+  cache,
+  projectId,
+}: ConfeePluginOptions) {
   if (!CONFEE_ACCESS_TOKEN) {
     throw new Error('CONFEE_ACCESS_TOKEN environment variable is not set.');
   }
@@ -41,15 +46,17 @@ export async function fetchAndSaveConfig(url: string, projectId: string) {
       throw new Error('Failed to fetch configuration.');
     }
 
-    /**
-     * 如果文件夹不存在，则迭代创建
-     */
-    if (!fs.existsSync(confDir)) fs.mkdirSync(confDir, { recursive: true });
+    if (cache) {
+      /**
+       * 如果文件夹不存在，则迭代创建
+       */
+      if (!fs.existsSync(confDir)) fs.mkdirSync(confDir, { recursive: true });
 
-    fs.writeFileSync(confPathname, JSON.stringify(data));
-    // 告知配置文件所在位置
-    // eslint-disable-next-line no-console
-    console.info('Success, config file path: ', confPathname);
+      fs.writeFileSync(confPathname, JSON.stringify(data));
+      // 告知配置文件所在位置
+      // eslint-disable-next-line no-console
+      console.info('Success, config file path: ', confPathname);
+    }
 
     return data;
   } catch (error) {
