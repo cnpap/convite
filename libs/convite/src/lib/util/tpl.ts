@@ -105,42 +105,42 @@ export function tplCodeRefining(
      *
      * <!--
      * ... any code
-     * endTpl-->
+     * tpl-->
      *
      * 修复 /<!--([\s\S]+)endTpl-->/g 可能贪婪匹配的问题
      */
     code = trimHelpComment({
       code,
       record: templates,
-      reg: /<!--([\s\S]*?)endTpl-->/g,
-      trims: [/[\n\s]*<!--[\n\s]+/, /[\n\s]*endTpl-->[\n\s]*/],
+      reg: /<!--([\s\S]*?)tpl-->/g,
+      trims: [/[\n\s]*<!--[\n\s]+/, /[\n\s]*tpl-->[\n\s]*/],
     });
   }
   // {/*
   // ... any code
-  // endTpl*/}
+  // tpl*/}
   code = trimHelpComment({
     code,
     record: templates,
-    reg: /{\/\*([\s\S]*?)endTpl\*\/}/g,
-    trims: [/[\n\s]*{\/\*[\n\s]+/, /[\n\s]*endTpl\*\/}[\n\s]*/],
+    reg: /{\/\*([\s\S]*?)tpl\*\/}/g,
+    trims: [/[\n\s]*{\/\*[\n\s]+/, /[\n\s]*tpl\*\/}[\n\s]*/],
   });
 
   // 还有一种情况是直接在代码中写注释，这种情况下需要提取到 templates
   //
   // /**
   // ... any code
-  // endTpl*/
+  // tpl*/
   //
   // 这个需要额外考虑一下，首先去除 /** 和 tpl*/
   // 然后还要去除每一行的 *
   code = trimHelpComment({
     code,
     record: templates,
-    reg: /\/\*\*([\s\S]*?)endTpl\*\//g,
+    reg: /\/\*\*([\s\S]*?)tpl\*\//g,
     trims: [
       /[\n\s]*\/\*\*[\n\s]+/,
-      /[\n\s]*endTpl\*\/[\n\s]*/,
+      /[\n\s]*tpl\*\/[\n\s]*/,
       /[\n\s]*\*[\n\s]+/g,
     ],
   });
@@ -150,13 +150,13 @@ export function tplCodeRefining(
    *
    * confee.tpl(`
    * ... any code
-   * tplEnd`)
+   * tpl`)
    */
   code = trimHelpComment({
     code,
     record: templates,
-    reg: /confee\.tpl\(`([\s\S]*?)tplEnd`\)/g,
-    trims: [/[\n\s]*confee\.tpl\(`[\n\s]+/, /[\n\s]*tplEnd`\)[;,\n\s]*/],
+    reg: /confee\.tpl\(`([\s\S]*?)tpl`\)/g,
+    trims: [/[\n\s]*confee\.tpl\(`[\n\s]+/, /[\n\s]*tpl`\)[;,\n\s]*/],
   });
 
   return {
@@ -180,17 +180,16 @@ export function tplToJsCode(code: string) {
 }
 
 type TplCallbableOptions = TplCodeRefiningResult & {
-  confeeData: ConfeeData;
+  confee: ConfeeData;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  globalData?: Record<string, any>;
+  global?: Record<string, any>;
 };
 
 export function tplCallbable({
   replaced,
   templates,
   prescripts,
-  confeeData,
-  globalData = {},
+  ...rest
 }: TplCallbableOptions) {
   for (const id in prescripts) {
     const code = prescripts[id];
@@ -206,5 +205,5 @@ ${code}
     const code = templates[id];
     replaced = replaced.replace(id, code);
   }
-  return ejs.render(replaced, { confee: confeeData, global: globalData });
+  return ejs.render(replaced, { ...rest });
 }

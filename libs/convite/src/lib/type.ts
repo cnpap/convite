@@ -17,6 +17,10 @@ export interface Template {
    * 模板文件内容，一般应该是我们通过 pathname 读取以后回写，当然你手写也 ok
    */
   content?: string;
+  /**
+   * 具名，可能使用相同配置，但是模板实现不同，这个时候就需要具名
+   */
+  name?: string;
 }
 
 export interface PaginationDetail {
@@ -61,6 +65,7 @@ export interface ConfeeData {
   paginationOptions: PaginationOption[];
   paginationFields: PaginationField[];
   paginations: Pagination[];
+  paginationTableRelations: PaginationTableRelation[];
   computed: ConfeeComputed;
 }
 
@@ -204,11 +209,26 @@ export interface PaginationOptionAttr {
 
 export interface Pagination {
   id: string;
+  name: string;
   code: string;
   data: PaginationData[];
   groupCode: string;
   projectTableCode: string;
   projectPaginationOptionId: string;
+  relationData: PaginationRelationData;
+  checkedDataNum: number;
+  checkedFieldsNum: number;
+}
+
+export interface PaginationRelationData {
+  key: string;
+  sort: number;
+  option: PaginationRelationDataOption[];
+}
+
+export interface PaginationRelationDataOption {
+  code: string;
+  value: string;
 }
 
 export interface PaginationData {
@@ -216,6 +236,18 @@ export interface PaginationData {
   tableColumnCode: string;
   sort: number;
   dbType: string;
+  package: PaginationDataPackage;
+}
+
+export interface PaginationDataPackage {
+  key: string;
+  sort: number;
+  title: string;
+  children: any[];
+  checkable: boolean;
+  isPackage: boolean;
+  parentKey: string;
+  packageSort: number;
 }
 
 export interface PaginationDataOption {
@@ -231,7 +263,18 @@ export interface PaginationField {
   projectTableRelationId: string;
   data: PaginationFieldData[];
   projectTableCode: string;
-  relationData: any;
+  relationData: PaginationFieldRelationData[];
+}
+
+export interface PaginationFieldRelationData {
+  key: string;
+  sort: number;
+  option: PaginationFieldRelationDataOption;
+}
+
+export interface PaginationFieldRelationDataOption {
+  code: string;
+  value: number;
 }
 
 export interface PaginationFieldData {
@@ -239,11 +282,40 @@ export interface PaginationFieldData {
   option: PaginationFieldDataOption[];
   relationTypes: string[];
   tableColumnCode: string;
-  sort?: number;
-  package: any;
+  sort: number;
+  package: PaginationDataPackage;
 }
 
 export interface PaginationFieldDataOption {
   code: string;
   value: any;
+}
+
+export interface PaginationTableRelation {
+  id: string;
+  targetFields: PaginationTableRelationTargetField[];
+  projectId: string;
+  projectTableCode: string;
+  projectTargetTableCode: string;
+  type: string;
+  tableFields: PaginationTableRelationTableField[];
+  alias?: string;
+}
+
+export interface PaginationTableRelationTargetField {
+  key: string;
+  code: string;
+  name: string;
+  label: string;
+  title?: string;
+  value: string;
+}
+
+export interface PaginationTableRelationTableField {
+  key: string;
+  code: string;
+  name: string;
+  label: string;
+  title: string;
+  value: string;
 }

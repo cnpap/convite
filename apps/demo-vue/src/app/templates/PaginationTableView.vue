@@ -15,7 +15,7 @@ import {
 } from '@sia-fl/convite-dev';
 
 confee.preTpl;
-const currentMod = global.currentMod
+const currentMod = (global as any).currentMod
   .replace('@sia-fl/route-', '')
   .replace('.vue', '');
 

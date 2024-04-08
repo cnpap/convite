@@ -116,7 +116,7 @@ export interface ConfeePluginOptions {
 /**
  * 全局用到的配置文件对象
  */
-let confeeData: ConfeeData = null as unknown as ConfeeData;
+let confee: ConfeeData = null as unknown as ConfeeData;
 /**
  * 所有分页对应的 mods
  */
@@ -160,7 +160,7 @@ export const confeePlugin: (options: ConfeePluginOptions) => PluginOption[] = (
       resolveIds = Object.keys(options.idsResolve);
 
       if (global.__viteConfeeData) {
-        confeeData = global.__viteConfeeData;
+        confee = global.__viteConfeeData;
         mods = global.__mods;
         paginationDetails = global.__vitePaginationDetails;
 
@@ -170,8 +170,8 @@ export const confeePlugin: (options: ConfeePluginOptions) => PluginOption[] = (
       /**
        * 开始准备数据，对数据进行预处理，主要是确定分页和模板的关系以及为分页补充数据
        */
-      confeeData = await fetchAndSaveConfig(options);
-      confeeData.computed = {
+      confee = await fetchAndSaveConfig(options);
+      confee.computed = {
         hotModuleByRoute: {},
       };
 
@@ -179,7 +179,7 @@ export const confeePlugin: (options: ConfeePluginOptions) => PluginOption[] = (
        * 将 <分页选项，模板文件> 通过名称对应起来
        */
       for (const template of options.templates) {
-        const paginationOption = confeeData.paginationOptions.find(
+        const paginationOption = confee.paginationOptions.find(
           (p) => p.name === template.paginationOptionName
         );
         if (!paginationOption)
@@ -193,7 +193,7 @@ export const confeePlugin: (options: ConfeePluginOptions) => PluginOption[] = (
          * 每一个分页都有一个分页选项 id
          * 而模板已经在上一步与分页选项对应起来了
          */
-        const paginations = confeeData.paginations.filter(
+        const paginations = confee.paginations.filter(
           (p) => p.projectPaginationOptionId === paginationOption?.id
         );
 
@@ -208,7 +208,7 @@ export const confeePlugin: (options: ConfeePluginOptions) => PluginOption[] = (
          * 将主页与分页进行关联，并记录一系列可用信息
          */
         for (const pagination of paginations) {
-          const mainPage = confeeData.mainPages.find(
+          const mainPage = confee.mainPages.find(
             (p) => p.code === pagination.groupCode
           );
           if (!mainPage) continue;
@@ -237,7 +237,7 @@ export const confeePlugin: (options: ConfeePluginOptions) => PluginOption[] = (
           /**
            * 拉去这个分页的所有配置字段
            */
-          const paginationFields = confeeData.paginationFields.filter(
+          const paginationFields = confee.paginationFields.filter(
             (p) =>
               p.projectTableCode === pagination.projectTableCode &&
               p.projectPaginationCode === pagination.code
@@ -258,10 +258,10 @@ export const confeePlugin: (options: ConfeePluginOptions) => PluginOption[] = (
         }
       }
 
-      options.computed(confeeData, Object.values(paginationDetails));
+      options.computed(confee, Object.values(paginationDetails));
 
       global.__mods = mods;
-      global.__viteConfeeData = confeeData;
+      global.__viteConfeeData = confee;
       global.__vitePaginationDetails = paginationDetails;
     },
     configureServer(server) {
@@ -294,7 +294,7 @@ export const confeePlugin: (options: ConfeePluginOptions) => PluginOption[] = (
                  * 记录所需热更新的模块
                  */
                 global.__viteHotModuleByRoute =
-                  confeeData.computed.hotModuleByRoute[payload.route] || [];
+                  confee.computed.hotModuleByRoute[payload.route] || [];
                 server.restart(false);
               }
             });
@@ -354,7 +354,10 @@ export const confeePlugin: (options: ConfeePluginOptions) => PluginOption[] = (
              * 首先通过 templateName 找到对应的模板内容
              */
             for (const template of options.templates) {
-              if (template.paginationOptionName === paginationOptionName) {
+              if (
+                template.paginationOptionName === paginationOptionName ||
+                template.name === paginationOptionName
+              ) {
                 if (template.pathname) {
                   template.content = fs.readFileSync(
                     template.pathname,
@@ -364,8 +367,8 @@ export const confeePlugin: (options: ConfeePluginOptions) => PluginOption[] = (
                 const ps = tplCodeRefining(template.content, id);
                 return tplCallbable({
                   ...ps,
-                  confeeData,
-                  globalData: {
+                  confee,
+                  global: {
                     currentMod: id,
                     currentUrl: global.__viteCurrentUrl,
                     hotModuleByRoute: global.__viteHotModuleByRoute,
@@ -417,7 +420,7 @@ export const confee = {}`;
         const ps = tplCodeRefining(code, id);
         return tplCallbable({
           ...ps,
-          confeeData,
+          confee,
         });
       }
       return code;
